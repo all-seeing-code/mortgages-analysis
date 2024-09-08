@@ -231,7 +231,6 @@ def merge_static_and_monthly(
     return result
 
 
-# Use lead/lag to calculate current balance
 def calculate_current_balance(df):
     """
     Calculate the current_balance for each row in the dataframe.
@@ -246,7 +245,7 @@ def calculate_current_balance(df):
     df["current_balance"] = np.nan
 
     # Group by loan_id
-    for loan_id, loan_df in df_copy.groupby("loan_id"):
+    for _, loan_df in df_copy.groupby("loan_id"):
         # Find the first non-NaN Month_end_balance
         start_idx = loan_df["me_balances"].first_valid_index()
         if start_idx is not None:
@@ -267,104 +266,6 @@ def calculate_current_balance(df):
 
     # Return the current_balance series, aligned with the original dataframe's index
     return df_copy["current_balance"].reindex(df.index)
-
-
-def calculate_current_balance_new(df, column_name="current_balance"):
-    """
-    Calculate the current_balance for each row in the dataframe using lead/lag approach.
-    """
-    # # Sort the dataframe by loan_id and month
-    # df_sorted = df.sort_values(["loan_id", "month"])
-
-    # # Calculate the change in balance
-    # balance_change = df_sorted["payment_due"] - df_sorted["payment_made"]
-
-    # # Calculate cumulative sum of balance changes within each loan_id group
-    # cumulative_change = balance_change.groupby(df_sorted["loan_id"]).cumsum()
-
-    # # Set the initial balance for each loan using the first non-NaN me_balances
-    # initial_balance = df_sorted.groupby("loan_id")["me_balances"].first()
-
-    # # Broadcast the initial balance to all rows in each loan_id group
-    # initial_balance_broadcast = df_sorted["loan_id"].map(initial_balance)
-
-    # # Calculate the current balance
-    # df_sorted["current_balance"] = initial_balance_broadcast + cumulative_change
-
-    # # Round the current_balance to 5 decimal places
-    # df_sorted["current_balance"] = df_sorted["current_balance"].round(5)
-
-    # # Reindex the result to match the original dataframe's index
-    # return df_sorted["current_balance"].reindex(df.index)
-
-    # Sort the dataframe by loan_id and month
-    df = df.copy()
-    df_sorted = df.sort_values(["loan_id", "month"])
-
-    # Calculate the change in balance
-    balance_change = df_sorted["payment_due"] - df_sorted["payment_made"]
-
-    # Calculate cumulative sum of balance changes within each loan_id group
-    cumulative_change = balance_change.groupby(df_sorted["loan_id"]).cumsum()
-
-    # Set the initial balance for each loan using the first non-NaN me_balances
-    initial_balance = df_sorted.groupby("loan_id")["me_balances"].first()
-
-    # Broadcast the initial balance to all rows in each loan_id group
-    initial_balance_broadcast = df_sorted["loan_id"].map(initial_balance)
-
-    # Calculate the current balance
-    df_sorted["current_balance"] = initial_balance_broadcast + cumulative_change
-
-    for _, loan_df in df.groupby("loan_id"):
-        start_idx = loan_df["me_balances"].first_valid_index()
-        df.loc[start_idx, "current_balance"] = df.loc[start_idx, "me_balances"]
-
-    df_sorted["current_balance"] = df_sorted["current_balance"].round(5)
-    # Reindex the result to match the original dataframe's index
-    return df_sorted
-
-
-# def calculate_current_balance_new(df):
-#     """
-#     Calculate the current_balance for each row in the dataframe using a vectorized approach.
-#     """
-#     # Sort the dataframe by loan_id and month
-#     df_sorted = df.sort_values(["loan_id", "month"])
-
-#     # Create a mask for non-NaN me_balances
-#     valid_me_balances = df_sorted["me_balances"].notna()
-
-#     # Create a mask for rows starting from the first non-NaN me_balances in each loan_id group
-#     start_mask = valid_me_balances.groupby(df_sorted["loan_id"]).cumsum() > 0
-
-#     # Initialize current_balance with NaNs
-#     df_sorted["current_balance"] = np.nan
-
-#     # Set the first valid me_balances as the starting current_balance for each loan
-#     df_sorted.loc[valid_me_balances & start_mask, "current_balance"] = df_sorted.loc[
-#         valid_me_balances & start_mask, "me_balances"
-#     ]
-
-#     # Calculate the change in balance, but only for rows after the first valid me_balances
-#     balance_change = (df_sorted["payment_due"] - df_sorted["payment_made"]).where(
-#         start_mask, 0
-#     )
-
-#     # Calculate cumulative sum of balance changes within each loan_id group
-#     cumulative_change = balance_change.groupby(df_sorted["loan_id"]).cumsum()
-
-#     # Update current_balance by adding cumulative change to the initial balance
-#     df_sorted.loc[start_mask, "current_balance"] = (
-#         df_sorted.loc[start_mask, "current_balance"].fillna(method="ffill")
-#         + cumulative_change.loc[start_mask]
-#     )
-
-#     # Round the current_balance to 5 decimal places
-#     df_sorted["current_balance"] = df_sorted["current_balance"].round(5)
-
-#     # Reindex the result to match the original dataframe's index
-#     return df_sorted["current_balance"].reindex(df.index)
 
 
 def print_sample_loans(df, n_loans=3):
@@ -447,11 +348,6 @@ def calculate_prepaid_in_month(df):
         (df["payment_made"] > df["payment_due"]) & (df["current_balance"] == 0),
         False,
     )
-
-
-# Additional check:
-# df["outstanding_balance"].lag()+df["payment_due"] = df["payment_made"]
-# group_by loanid
 
 
 def calculate_default_in_month(df):
