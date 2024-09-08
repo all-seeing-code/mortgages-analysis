@@ -160,11 +160,11 @@ def aggregate_cashflows(results):
 
 
 def get_cdr_vector(rate):
-    return np.full(MAX_TERM, rate)  # 2% CDR for all months
+    return np.full(MAX_TERM, rate)
 
 
 def get_cpr_vector(rate):
-    return np.full(MAX_TERM, rate)  # 5% CPR for all months
+    return np.full(MAX_TERM, rate)
 
 
 def get_recovery_rate_vector(rate):
